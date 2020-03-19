@@ -1,0 +1,161 @@
+<head>
+  <script src='https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.js'></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.css' rel='stylesheet' />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    h2,
+    h3 {
+      margin: 10px;
+      font-size: 1.2em;
+    }
+
+    h3 {
+      font-size: 1em;
+    }
+
+    p {
+      font-size: 0.85em;
+      margin: 10px;
+      text-align: left;
+    }
+
+    /**
+* Create a position for the map
+* on the page */
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    /**
+* Set rules for how the map overlays
+* (info box and legend) will be displayed
+* on the page. */
+    .map-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      background: rgba(255, 255, 255, 0.8);
+      margin-right: 20px;
+      font-family: Arial, sans-serif;
+      overflow: auto;
+      border-radius: 3px;
+    }
+
+    #features {
+      top: 0;
+      height: 100px;
+      margin-top: 10px;
+      margin-bottom:10px;
+      width: 50%;
+    }
+
+    .mapboxgl-popup {
+      font: 14px/18px 'Roboto', Arial, Helvetica, sans-serif;
+      scrollbars=1;
+    }
+
+    .mapboxgl-popup-content {
+      width: 400px;
+      max-height: 200px;
+      overflow-y: scroll;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div id='map'></div>
+  <div class='map-overlay' id='features'>
+    <h2>How each US state and territory is handling coronavirus closures and restrictions</h2>
+    <div id='pd'>
+      <p>Hover over a state to see more info</p>
+    </div>
+  </div>
+  <div class='map-overlay' id='legend'></div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiamtldmluY3Jvd2xleSIsImEiOiJjamNxbGk4eXkwMXp1MndwN2Q4bGRrZzVmIn0.M7zeah_wNFvSkLFsksWlWw';
+
+    var map = new mapboxgl.Map({
+      container: 'map', // container id
+      style: 'mapbox://styles/jkevincrowley/ck7xn338703yp1imvg4c62a6r',
+      center: {
+        lon: -95.69352,
+        lat: 40.08050
+      },
+      zoom: 3.43,
+    });
+
+    // wait for map to load before adjusting it
+    map.on('load', function() {
+
+      // make a pointer cursor
+      map.getCanvas().style.cursor = 'default';
+
+      //add covid data from LP
+      map.addSource('statedata-1', {
+        'type': 'vector',
+        'url': 'mapbox://jkevincrowley.1xcgkhco'
+      });
+      map.addLayer({
+        'id': 'statedata',
+        'type': 'fill',
+        'source': 'statedata-1',
+        'source-layer': 'CovidstateData-c0e0wt',
+        'paint': {
+          'fill-outline-color': 'rgba(0,0,0,0.1)',
+          'fill-color': 'rgba(0,0,0,0)'
+        }
+      });
+    }); // Place polygon under these labels.
+
+    // Create a popup, but don't add it to the map yet.
+    var popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false
+    });
+
+    map.on('mousemove', 'statedata', function(e) {
+        // e = {
+        //  lngLat: {},
+        //  features: [],
+        //  ...
+        // }
+
+        // Change the cursor style as a UI indicator.
+        map.getCanvas().style.cursor = 'pointer';
+
+        var coordinates = e.lngLat.wrap();
+
+        // Ensure that if the map is zoomed out such that multiple
+        // copies of the feature are visible, the popup appears
+        // over the copy being pointed to.
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+
+        var formattedPopup = '<h2>' + e.features[0].properties.name + '</h2>' +
+                            '<p>' + e.features[0].properties.response + '</p>';
+
+        // Populate the popup and set its coordinates
+        // based on the feature found.
+        popup
+          .setLngLat(coordinates)
+          .setHTML(formattedPopup)
+          .addTo(map);
+      } );
+
+    map.on('mouseleave', 'statedata', function() {
+      map.getCanvas().style.cursor = '';
+      popup.remove();
+    });
+  </script>
+</body>
